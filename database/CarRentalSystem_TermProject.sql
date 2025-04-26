@@ -274,7 +274,7 @@ ON Cars (Status);
 
 
 
--- Drop the triggers if it exists
+-- Drop the trigger if it exists
 BEGIN
     EXECUTE IMMEDIATE 'DROP TRIGGER trg_before_insert_rentals';
 EXCEPTION
