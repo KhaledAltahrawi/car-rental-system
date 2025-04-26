@@ -1,24 +1,44 @@
+const { validationResult } = require('express-validator');
+const { body } = require('express-validator'); // Import body separately
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
 
 const registerCustomer = async (req, res) => {
+    // 1. Validation checks
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
     try {
         const { name, email, password, phone, driverLicense } = req.body;
 
-        // 1. Hash the password
+        // Check if email already exists
+        const connection = await db.getConnection();
+        const emailExistsResult = await connection.execute(
+            `SELECT COUNT(*) FROM Customers WHERE Email = :email`,
+            [email]
+        );
+        const emailCount = emailExistsResult.rows[0][0]; // Assuming COUNT(*) returns a single number
+
+        if (emailCount > 0) {
+            await connection.release();
+            return res.status(400).json({ errors: [{ msg: 'Email already exists' }] });
+        }
+
+        // 2. Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 2. Insert the user into the database
-        const connection = await db.getConnection();
+        // 3. Insert the user into the database
         const result = await connection.execute(
-            `INSERT INTO Customers (CustomerID, Name, Email, Phone, DriverLicense) VALUES (customers_seq.NEXTVAL, :name, :email, :phone, :driverLicense)`,
+            `INSERT INTO Customers (CustomerID, Name, Email, Password, Phone, DriverLicense) VALUES (customers_seq.NEXTVAL, :name, :email, :password, :phone, :driverLicense)`,
             [name, email, hashedPassword, phone, driverLicense],
-            { autoCommit: true } // Important for Oracle!
+            { autoCommit: true }
         );
 
         await connection.release();
 
-        // 3. Send a success response
+        // 4. Send a success response
         res.status(201).json({ message: 'User registered successfully' });
 
     } catch (error) {

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const customerController = require('../controllers/customerController'); // Placeholder
+const customerController = require('../controllers/customerController');
+const { body } = require('express-validator');
 
 // GET /api/customers - Get all customers (Admin only - Placeholder)
 router.get('/', /* authMiddleware.isAdmin, */ customerController.getAllCustomers);
@@ -9,7 +10,17 @@ router.get('/', /* authMiddleware.isAdmin, */ customerController.getAllCustomers
 router.get('/:id', customerController.getCustomerById);
 
 // POST /api/customers/register - Register a new customer
-router.post('/register', customerController.registerCustomer);
+router.post(
+    '/register',
+    [
+        body('name').notEmpty().withMessage('Name is required'),
+        body('email').isEmail().withMessage('Invalid email address'),
+        body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+        body('phone').notEmpty().withMessage('Phone is required'),
+        body('driverLicense').notEmpty().withMessage('DriverLicense is required'),
+    ],
+    customerController.registerCustomer
+);
 
 // POST /api/customers/login - Login a customer
 router.post('/login', customerController.loginCustomer);
