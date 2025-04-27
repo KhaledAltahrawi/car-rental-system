@@ -64,12 +64,54 @@ const updateCar = async (req, res) => {
     const { make, model, year, licensePlate, status, carTypeId } = req.body;
     try {
         const connection = await db.getConnection();
+
+        let updateQuery = 'UPDATE Cars SET ';
+        const updateValues = {}; // Change: Use a single object
+        const setClauses = [];
+
+        if (make !== undefined) {
+            setClauses.push('Make = :make');
+            updateValues.make = make; // Change: key-value pair
+        }
+        if (model !== undefined) {
+            setClauses.push('Model = :model');
+            updateValues.model = model; // Change: key-value pair
+        }
+        if (year !== undefined) {
+            setClauses.push('Year = :year');
+            updateValues.year = year; // Change: key-value pair
+        }
+        if (licensePlate !== undefined) {
+            setClauses.push('LicensePlate = :licensePlate');
+            updateValues.licensePlate = licensePlate; // Change: key-value pair
+        }
+        if (status !== undefined) {
+            setClauses.push('Status = :status');
+            updateValues.status = status; // Change: key-value pair
+        }
+        if (carTypeId !== undefined) {
+            setClauses.push('CarTypeID = :carTypeId');
+            updateValues.carTypeId = carTypeId; // Change: key-value pair
+        }
+
+        if (setClauses.length === 0) {
+            await connection.release();
+            return res.status(400).json({ message: 'No fields to update provided' });
+        }
+
+        updateQuery += setClauses.join(', ');
+        updateQuery += ' WHERE CarID = :carId';
+        updateValues.carId = carId; // Change: Add carId to the object
+
+
         const result = await connection.execute(
-            `UPDATE Cars SET Make = :make, Model = :model, Year = :year, LicensePlate = :licensePlate, Status = :status, CarTypeID = :carTypeId WHERE CarID = :carId`,
-            [make, model, year, licensePlate, status, carTypeId, carId],
+            updateQuery,
+            updateValues, // Use the single object
             { autoCommit: true }
         );
+
         await connection.release();
+
         if (result.rowsAffected > 0) {
             res.status(200).json({ message: 'Car updated successfully' });
         } else {
