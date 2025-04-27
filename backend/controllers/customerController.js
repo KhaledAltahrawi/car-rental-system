@@ -2,6 +2,10 @@ const { validationResult } = require('express-validator');
 const { body } = require('express-validator'); // Import body separately
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+require('dotenv').config(); // Load environment variables from .env file
+const JWT_SECRET = process.env.JWT_SECRET; // Access the JWT secret from .env
+
 
 const registerCustomer = async (req, res) => {
     // 1. Validation checks
@@ -134,7 +138,6 @@ const loginCustomer = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // 1. Find the customer by email
         const connection = await db.getConnection();
         const result = await connection.execute(
             `SELECT CustomerID, Name, Email, Password FROM Customers WHERE Email = :email`,
@@ -143,22 +146,21 @@ const loginCustomer = async (req, res) => {
         const customer = result.rows[0];
         await connection.release();
 
-        // 2. Check if the customer exists
         if (!customer) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // 3. Compare the provided password with the stored hashed password
-        const passwordMatch = await bcrypt.compare(password, customer[3]); // Assuming Password is the 4th column
+        const passwordMatch = await bcrypt.compare(password, customer[3]);
 
         if (!passwordMatch) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // 4. Login successful - For now, just send a success message
-        res.status(200).json({ message: 'Login successful', userId: customer[0], name: customer[1] }); // Include userId and name
-        // In a real application, you would generate a session or JWT here
-        
+        // Generate JWT
+        const token = jwt.sign({ userId: customer[0] }, JWT_SECRET, { expiresIn: '1h' }); // Token expires in 1 hour
+
+        res.status(200).json({ message: 'Login successful', token: token, userId: customer[0], name: customer[1] });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Login failed' });
