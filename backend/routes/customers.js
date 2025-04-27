@@ -2,12 +2,14 @@ const express = require('express');
 const router = express.Router();
 const customerController = require('../controllers/customerController');
 const { body } = require('express-validator');
+const { authenticateToken } = require('../middleware/authMiddleware'); // Import the middleware
+
 
 // GET /api/customers - Get all customers (Admin only - Placeholder)
 router.get('/', /* authMiddleware.isAdmin, */ customerController.getAllCustomers);
 
-// GET /api/customers/:id - Get customer by ID
-router.get('/:id', customerController.getCustomerById);
+// GET /api/customers/:id - Get customer by ID (Protected)
+router.get('/:id', authenticateToken, customerController.getCustomerById);
 
 // POST /api/customers/register - Register a new customer
 router.post(
