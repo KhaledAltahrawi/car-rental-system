@@ -134,24 +134,31 @@ const loginCustomer = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        // 1. Find the customer by email
         const connection = await db.getConnection();
         const result = await connection.execute(
-            `SELECT * FROM Customers WHERE Email = :email`,
+            `SELECT CustomerID, Name, Email, Password FROM Customers WHERE Email = :email`,
             [email]
         );
         const customer = result.rows[0];
         await connection.release();
 
-        if (customer) {
-            const passwordMatch = await bcrypt.compare(password, customer[2]); // Assuming hashed password is in the 3rd column
-            if (passwordMatch) {
-                res.status(200).json({ message: 'Login successful' });
-            } else {
-                res.status(401).json({ error: 'Invalid credentials' });
-            }
-        } else {
-            res.status(404).json({ error: 'Customer not found' });
+        // 2. Check if the customer exists
+        if (!customer) {
+            return res.status(401).json({ error: 'Invalid credentials' });
         }
+
+        // 3. Compare the provided password with the stored hashed password
+        const passwordMatch = await bcrypt.compare(password, customer[3]); // Assuming Password is the 4th column
+
+        if (!passwordMatch) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // 4. Login successful - For now, just send a success message
+        res.status(200).json({ message: 'Login successful', userId: customer[0], name: customer[1] }); // Include userId and name
+        // In a real application, you would generate a session or JWT here
+        
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Login failed' });
