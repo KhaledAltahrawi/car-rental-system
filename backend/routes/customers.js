@@ -23,7 +23,14 @@ router.post(
 );
 
 // POST /api/customers/login - Login a customer
-router.post('/login', customerController.loginCustomer);
+router.post(
+    '/login',
+    [
+        body('email').isEmail().withMessage('Invalid email address'),
+        body('password').notEmpty().withMessage('Password is required'),
+    ],
+    customerController.loginCustomer
+);
 
 // PUT /api/customers/:id - Update customer by ID (Customer or Admin)
 router.put('/:id', /* authMiddleware.isAuth, */ customerController.updateCustomer);
